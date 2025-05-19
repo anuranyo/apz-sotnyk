@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "src/server.js"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb_uri",
+    "JWT_SECRET": "@jwt_secret",
+    "MQTT_BROKER": "broker.hivemq.com",
+    "MQTT_PORT": "1883",
+    "MQTT_TOPIC": "weight-monitor/data",
+    "MQTT_CLIENT_ID": "weight-monitor-server"
+  }
+}

@@ -13,12 +13,24 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: function(origin, callback) {
-    const allowedOrigins = ['http://apz-sotnyk-serv.vercel.app/api', 'apz-sotnyk-serv.vercel.app/api', 'http://apz-sotnyk-serv.vercel.app/', 'apz-sotnyk-serv.vercel.app', 'http://localhost:5000', 'http://localhost:5174'];
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    const allowedOrigins = [
+      'https://apz-sotnyk.vercel.app',  // Add the correct frontend domain with https
+      'http://apz-sotnyk.vercel.app',   // Also allow http version just in case
+      'https://apz-sotnik-serv.vercel.app',
+      'http://apz-sotnik-serv.vercel.app',
+      'http://localhost:5000',
+      'http://localhost:5174',
+      'http://localhost:3000'  // Add your vite dev server port
+    ];
+    
+    // Log all requests for debugging
+    console.log('Request origin:', origin);
+    
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log('Blocked by CORS:', origin);
-      callback(null, false);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,

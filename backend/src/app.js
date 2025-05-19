@@ -16,8 +16,8 @@ app.use(cors({
     const allowedOrigins = [
       'https://apz-sotnyk.vercel.app',  // Add the correct frontend domain with https
       'http://apz-sotnyk.vercel.app',   // Also allow http version just in case
-      'https://apz-sotnik-serv.vercel.app',
-      'http://apz-sotnik-serv.vercel.app',
+      'https://apz-sotnyk-serv.vercel.app',
+      'http://apz-sotnyk-serv.vercel.app',
       'http://localhost:5000',
       'http://localhost:5174',
       'http://localhost:3000'  // Add your vite dev server port

@@ -20,6 +20,6 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://apz-sotnik-serv.vercel.app/api"
+    "REACT_APP_API_URL": "https://apz-sotnyk-serv.vercel.app/api"
   }
 }

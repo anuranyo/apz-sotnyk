@@ -13,7 +13,7 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: function(origin, callback) {
-    const allowedOrigins = ['http://apz-sotnyk-serv.vercel.app', 'apz-sotnyk-serv.vercel.app', 'http://localhost:5000', 'http://localhost:5174'];
+    const allowedOrigins = ['http://apz-sotnyk-serv.vercel.app/api', 'apz-sotnyk-serv.vercel.app/api', 'http://apz-sotnyk-serv.vercel.app/', 'apz-sotnyk-serv.vercel.app', 'http://localhost:5000', 'http://localhost:5174'];
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {

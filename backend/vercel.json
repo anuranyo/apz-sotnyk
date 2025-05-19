@@ -13,8 +13,8 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "JWT_SECRET": "@jwt_secret",
+    "MONGODB_URI": "mongodb+srv://sotnikoff:8QhvR2AYlQ3wCywV@main.vmmrruh.mongodb.net/weight_monitor",
+    "JWT_SECRET": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImNvdXJzZSIsImlhdCI6MTUxNjIzOTAyMn0.xQmMFjoTAalG5GfJTRXnac/Yq/KAh8M4XvfRztOLxfo",
     "MQTT_BROKER": "broker.hivemq.com",
     "MQTT_PORT": "1883",
     "MQTT_TOPIC": "weight-monitor/data",

@@ -14,7 +14,7 @@ const app = express();
 app.use(cors({
   origin: function(origin, callback) {
     const allowedOrigins = [
-      'https://apz-sotnyk.vercel.app',  // Add the correct frontend domain with https
+      'https://apz-sotnyk.vercel.app',  // correct frontend domain with https
       'http://apz-sotnyk.vercel.app',   // Also allow http version just in case
       'https://apz-sotnyk-serv.vercel.app',
       'http://apz-sotnyk-serv.vercel.app',

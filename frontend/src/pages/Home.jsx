@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { Link } from "react-router-dom";
 import { ThemeContext } from "../context/ThemeContext";
+import homePic from "../assets/homePic.jpg";
 
 const Home = () => {
   const { darkMode } = useContext(ThemeContext);
@@ -35,7 +36,7 @@ const Home = () => {
           </div>
           <div className="relative animate-fade-in stagger-1">
             <img
-              src="https://images.unsplash.com/photo-1606145766093-4c9b00b2bb7a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+              src={homePic}
               alt="Weight Scale"
               className="w-full rounded-lg shadow-xl"
             />

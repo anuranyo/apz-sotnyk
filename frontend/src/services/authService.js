@@ -18,9 +18,12 @@ const authService = {
       const response = await apiClient.post('/auth/login', credentials);
       
       if (response.data.token) {
-        // Store token and user role
+        // Store token and user role - ИСПРАВЛЕНО: используем одинаковые ключи
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userRole', response.data.user.role);
+        localStorage.setItem('role', response.data.user.role); // Изменено с 'userRole' на 'role'
+        
+        // Дополнительно сохраним информацию о пользователе
+        localStorage.setItem('user', JSON.stringify(response.data.user));
       }
       
       return response.data;
@@ -32,7 +35,8 @@ const authService = {
   // Logout a user
   logout: () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
+    localStorage.removeItem('role'); // Изменено с 'userRole' на 'role'
+    localStorage.removeItem('user');
   },
 
   // Get current user profile
@@ -57,12 +61,31 @@ const authService = {
 
   // Check if user is authenticated
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    return !!token;
   },
 
-  // Check if user is admin
+  // Check if user is admin - ИСПРАВЛЕНО: правильная проверка
   isAdmin: () => {
-    return localStorage.getItem('role') == 'admin';
+    const role = localStorage.getItem('role');
+    console.log('Checking admin role:', role); // Для отладки
+    return role === 'admin';
+  },
+
+  // Get current user data from localStorage
+  getCurrentUser: () => {
+    try {
+      const user = localStorage.getItem('user');
+      return user ? JSON.parse(user) : null;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
+  },
+
+  // Get current user role
+  getUserRole: () => {
+    return localStorage.getItem('role');
   }
 };
 

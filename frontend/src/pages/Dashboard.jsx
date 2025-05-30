@@ -2,6 +2,12 @@ import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { ThemeContext } from "../context/ThemeContext";
 import { deviceService, readingService } from "../services";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+import WeightLimitModal from '../components/modals/WeightLimitModal';
+// import DailyReportsModal from '../components/modals/DailyReportsModal';
+import GenerateReportModal from '../components/modals/GenerateReportModal';
+import DeviceSettingsModal from '../components/modals/DeviceSettingsModal';
 
 const Dashboard = () => {
   const { darkMode } = useContext(ThemeContext);
@@ -11,6 +17,11 @@ const Dashboard = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [timeRange, setTimeRange] = useState("day"); // day, week, month
   const [error, setError] = useState("");
+
+  const [showWeightLimitModal, setShowWeightLimitModal] = useState(false);
+  // const [showDailyReportsModal, setShowDailyReportsModal] = useState(false);
+  const [showGenerateReportModal, setShowGenerateReportModal] = useState(false);
+  const [showDeviceSettingsModal, setShowDeviceSettingsModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,6 +102,113 @@ const Dashboard = () => {
       month: "short",
       day: "numeric"
     }).format(date);
+  };
+
+  // Prepare chart data
+  const prepareChartData = () => {
+    if (!readings.length) return [];
+    
+    // Sort readings by timestamp (oldest first for chart)
+    const sortedReadings = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    return sortedReadings.map(reading => ({
+      timestamp: new Date(reading.timestamp).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        month: 'short',
+        day: 'numeric'
+      }),
+      scale1: reading.scale1,
+      scale2: reading.scale2,
+      scale3: reading.scale3,
+      scale4: reading.scale4,
+      total: reading.scale1 + reading.scale2 + reading.scale3 + reading.scale4
+    }));
+  };
+
+  // Custom tooltip for chart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className={`p-3 rounded-lg shadow-lg border ${
+          darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
+        }`}>
+          <p className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+            {label}
+          </p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm">
+              {`${entry.name}: ${entry.value.toFixed(2)} kg`}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const chartData = prepareChartData();
+
+  // Handle modal actions
+  const handleWeightLimitSave = async (settings) => {
+    try {
+      // API call to save weight limit settings
+      await deviceService.updateDevice(selectedDevice.deviceId, {
+        weightLimitSettings: settings
+      });
+      // Update local state or refetch device data
+      console.log('Weight limit settings saved:', settings);
+    } catch (error) {
+      console.error('Error saving weight limit settings:', error);
+      setError('Failed to save weight limit settings');
+    }
+  };
+
+  const handleGenerateReport = async (reportData) => {
+    try {
+      console.log('Generating report with settings:', reportData);
+      
+      // Здесь можно добавить API вызов для генерации отчета
+      // const response = await reportService.generateReport(reportData);
+      
+      // Показать уведомление об успешной генерации
+      alert(`Report generated successfully! 
+      Format: ${reportData.reportFormat.toUpperCase()}
+      Period: ${reportData.timeRange}
+      Device: ${selectedDevice.name}`);
+        
+      // В реальном приложении здесь бы был автоматический скачиваний файла
+      
+    } catch (error) {
+      console.error('Error generating report:', error);
+      setError('Failed to generate report');
+    }
+  };
+
+  const handleDeviceSettingsSave = async (settings) => {
+    try {
+      // API call to update device settings
+      await deviceService.updateDevice(selectedDevice.deviceId, settings);
+      // Update selected device in local state
+      setSelectedDevice(prev => ({ ...prev, ...settings }));
+      console.log('Device settings saved:', settings);
+    } catch (error) {
+      console.error('Error saving device settings:', error);
+      setError('Failed to save device settings');
+    }
+  };
+
+  const handleDeviceDelete = async (deviceId) => {
+    try {
+      await deviceService.deleteDevice(deviceId);
+      // Remove device from local state
+      setDevices(prev => prev.filter(d => d.deviceId !== deviceId));
+      setSelectedDevice(null);
+      console.log('Device deleted');
+    } catch (error) {
+      console.error('Error deleting device:', error);
+      setError('Failed to delete device');
+    }
   };
 
   return (
@@ -340,44 +458,142 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* Chart Card - This would be implemented with a chart library in a real app */}
+                  {/* Chart Card - Weight Trends */}
                   <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
-                    <h3 className={`font-medium ${darkMode ? "text-gray-300" : "text-gray-700"}`}>Weight Trends</h3>
-                    <div className="mt-4 h-64 flex items-center justify-center border border-dashed rounded-lg">
-                      <div className="text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        <p className={`mt-2 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Chart would appear here</p>
-                        <p className={`text-sm ${darkMode ? "text-gray-500" : "text-gray-500"}`}>
-                          (Using a chart library like Chart.js or Recharts)
-                        </p>
+                    <h3 className={`text-lg font-medium mb-4 ${darkMode ? "text-gray-200" : "text-gray-900"}`}>Weight Trends</h3>
+                    {chartData.length > 0 ? (
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid 
+                              strokeDasharray="3 3" 
+                              stroke={darkMode ? "#374151" : "#e5e7eb"} 
+                            />
+                            <XAxis 
+                              dataKey="timestamp" 
+                              tick={{ fontSize: 12, fill: darkMode ? "#9ca3af" : "#6b7280" }}
+                              axisLine={{ stroke: darkMode ? "#4b5563" : "#d1d5db" }}
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 12, fill: darkMode ? "#9ca3af" : "#6b7280" }}
+                              axisLine={{ stroke: darkMode ? "#4b5563" : "#d1d5db" }}
+                              label={{ 
+                                value: 'Weight (kg)', 
+                                angle: -90, 
+                                position: 'insideLeft',
+                                style: { textAnchor: 'middle', fill: darkMode ? "#9ca3af" : "#6b7280" }
+                              }}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend 
+                              wrapperStyle={{ 
+                                color: darkMode ? "#d1d5db" : "#374151",
+                                fontSize: "14px"
+                              }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="scale1" 
+                              stroke="#3b82f6" 
+                              name="Scale 1"
+                              strokeWidth={2}
+                              dot={{ r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                            {selectedDevice.numberOfScales >= 2 && (
+                              <Line 
+                                type="monotone" 
+                                dataKey="scale2" 
+                                stroke="#10b981" 
+                                name="Scale 2"
+                                strokeWidth={2}
+                                dot={{ r: 4 }}
+                                activeDot={{ r: 6 }}
+                              />
+                            )}
+                            {selectedDevice.numberOfScales >= 3 && (
+                              <Line 
+                                type="monotone" 
+                                dataKey="scale3" 
+                                stroke="#f59e0b" 
+                                name="Scale 3"
+                                strokeWidth={2}
+                                dot={{ r: 4 }}
+                                activeDot={{ r: 6 }}
+                              />
+                            )}
+                            {selectedDevice.numberOfScales >= 4 && (
+                              <Line 
+                                type="monotone" 
+                                dataKey="scale4" 
+                                stroke="#ef4444" 
+                                name="Scale 4"
+                                strokeWidth={2}
+                                dot={{ r: 4 }}
+                                activeDot={{ r: 6 }}
+                              />
+                            )}
+                            <Line 
+                              type="monotone" 
+                              dataKey="total" 
+                              stroke="#8b5cf6" 
+                              name="Total Weight"
+                              strokeWidth={3}
+                              strokeDasharray="5 5"
+                              dot={{ r: 0 }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="h-64 flex items-center justify-center border border-dashed rounded-lg">
+                        <div className="text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          <p className={`mt-2 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>No data available for chart</p>
+                          <p className={`text-sm ${darkMode ? "text-gray-500" : "text-gray-500"}`}>
+                            Chart will appear when device readings are available
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Settings Card */}
                   <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
-                    <h3 className={`font-medium ${darkMode ? "text-gray-300" : "text-gray-700"}`}>Device Settings</h3>
+                    <h3 className={`font-medium ${darkMode ? "text-gray-300" : "text-gray-700"}`}>Device Actions</h3>
                     <div className="mt-4 space-y-4">
                       <div className="flex items-center justify-between">
                         <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>Weight Limit Alerts</p>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" defaultChecked />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
+                        <button
+                          onClick={() => setShowWeightLimitModal(true)}
+                          className={`px-3 py-1 text-sm rounded-md border transition-colors ${
+                            darkMode
+                              ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
+                              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          Configure
+                        </button>
                       </div>
                       <div className="flex items-center justify-between">
-                        <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>Daily Reports</p>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
+                        <p className={`${darkMode ? "text-gray-300" : "text-gray-700"}`}>Generate Report</p>
+                        <button
+                          onClick={() => setShowGenerateReportModal(true)}
+                          className={`px-3 py-1 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors`}
+                        >
+                          Generate
+                        </button>
                       </div>
                       <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Link to={`/device/${selectedDevice.deviceId}/settings`} className="text-blue-600 hover:text-blue-500">
+                        <button
+                          onClick={() => setShowDeviceSettingsModal(true)}
+                          className="text-blue-600 hover:text-blue-500"
+                        >
                           Edit Device Settings
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -410,6 +626,28 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      {/* Modal Components */}
+      <WeightLimitModal
+        isOpen={showWeightLimitModal}
+        onClose={() => setShowWeightLimitModal(false)}
+        device={selectedDevice}
+        onSave={handleWeightLimitSave}
+      />
+
+      <GenerateReportModal
+        isOpen={showGenerateReportModal}
+        onClose={() => setShowGenerateReportModal(false)}
+        device={selectedDevice}
+        onGenerate={handleGenerateReport}
+      />
+
+      <DeviceSettingsModal
+        isOpen={showDeviceSettingsModal}
+        onClose={() => setShowDeviceSettingsModal(false)}
+        device={selectedDevice}
+        onSave={handleDeviceSettingsSave}
+        onDelete={handleDeviceDelete}
+      />
     </div>
   );
 };

@@ -17,12 +17,23 @@ import { authService } from "./services";
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const isAuthenticated = authService.isAuthenticated();
   const isAdmin = authService.isAdmin();
+  const userRole = authService.getUserRole();
+
+  // Отладочная информация
+  console.log('ProtectedRoute check:', {
+    isAuthenticated,
+    isAdmin,
+    userRole,
+    requireAdmin
+  });
 
   if (!isAuthenticated) {
+    console.log('User not authenticated, redirecting to login');
     return <Navigate to="/login" />;
   }
 
   if (requireAdmin && !isAdmin) {
+    console.log('Admin required but user is not admin, redirecting to dashboard');
     return <Navigate to="/dashboard" />;
   }
 
@@ -37,14 +48,29 @@ function App() {
   useEffect(() => {
     const checkAuth = () => {
       const authenticated = authService.isAuthenticated();
+      const adminStatus = authService.isAdmin();
+      const userRole = authService.getUserRole();
+      
+      console.log('Auth check:', {
+        authenticated,
+        adminStatus,
+        userRole,
+        localStorage: {
+          token: !!localStorage.getItem('token'),
+          role: localStorage.getItem('role'),
+          user: localStorage.getItem('user')
+        }
+      });
+      
       setIsLoggedIn(authenticated);
-      setIsAdmin(authService.isAdmin());
+      setIsAdmin(adminStatus);
     };
 
     checkAuth();
     
     // Setup listener for storage events (for logout across tabs)
     const handleStorageChange = () => {
+      console.log('Storage changed, rechecking auth');
       checkAuth();
     };
     
@@ -56,6 +82,7 @@ function App() {
   }, []);
 
   const handleLogout = () => {
+    console.log('Logging out user');
     authService.logout();
     setIsLoggedIn(false);
     setIsAdmin(false);
@@ -75,17 +102,21 @@ function App() {
             <Route 
               path="/login" 
               element={
-                isLoggedIn ? 
-                <Navigate to={isAdmin ? "/admin" : "/dashboard"} /> : 
-                <Login setIsLoggedIn={setIsLoggedIn} setIsAdmin={setIsAdmin} />
+                isLoggedIn ? (
+                  <Navigate to={isAdmin ? "/admin" : "/dashboard"} />
+                ) : (
+                  <Login setIsLoggedIn={setIsLoggedIn} setIsAdmin={setIsAdmin} />
+                )
               } 
             />
             <Route 
               path="/register" 
               element={
-                isLoggedIn ? 
-                <Navigate to={isAdmin ? "/admin" : "/dashboard"} /> : 
-                <Register />
+                isLoggedIn ? (
+                  <Navigate to={isAdmin ? "/admin" : "/dashboard"} />
+                ) : (
+                  <Register />
+                )
               } 
             />
             <Route

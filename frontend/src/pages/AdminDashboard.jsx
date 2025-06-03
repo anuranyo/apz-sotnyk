@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { ThemeContext } from "../context/ThemeContext";
-import { adminService } from "../services"; // Изменено!
+import { adminService } from "../services";
 
 const AdminDashboard = () => {
   const { darkMode } = useContext(ThemeContext);
@@ -14,62 +14,165 @@ const AdminDashboard = () => {
   const [recentDevices, setRecentDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [deleteType, setDeleteType] = useState(""); // "user" or "device"
+  const [editType, setEditType] = useState(""); // "user" or "device"
+  
+  // Form states for editing
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    role: "user",
+    status: "active"
+  });
 
-  useEffect(() => {
-    // Fetch admin dashboard data
-    const fetchData = async () => {
-      setLoading(true);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Get all devices (admin only)
+      const devicesResponse = await adminService.getAllDevices();
+      setRecentDevices(devicesResponse.devices);
+      
+      // Get admin stats
       try {
-        // Get all devices (admin only) - используем adminService
-        const devicesResponse = await adminService.getAllDevices();
-        setRecentDevices(devicesResponse.devices);
+        const statsResponse = await adminService.getAdminStats();
+        setStats(statsResponse);
+      } catch (statsError) {
+        console.warn('Stats endpoint not available, calculating from devices data');
+        const activeDevices = devicesResponse.devices.filter(device => device.status === 'active').length;
         
-        // Get admin stats
-        try {
-          const statsResponse = await adminService.getAdminStats();
-          setStats(statsResponse);
-        } catch (statsError) {
-          console.warn('Stats endpoint not available, calculating from devices data');
-          // Fallback: calculate stats from devices data
-          const activeDevices = devicesResponse.devices.filter(device => device.status === 'active').length;
-          
-          setStats({
-            totalUsers: devicesResponse.devices.length > 0 ? 
-              [...new Set(devicesResponse.devices.map(d => d.owner?.id))].length : 0,
-            totalDevices: devicesResponse.devices.length,
-            activeDevices: activeDevices,
-            totalReadings: 0
+        setStats({
+          totalUsers: devicesResponse.devices.length > 0 ? 
+            [...new Set(devicesResponse.devices.map(d => d.owner?.id))].length : 0,
+          totalDevices: devicesResponse.devices.length,
+          activeDevices: activeDevices,
+          totalReadings: 0
+        });
+      }
+      
+      // Extract unique users from devices
+      const uniqueUsers = [];
+      const userIds = new Set();
+      
+      devicesResponse.devices.forEach(device => {
+        if (device.owner && !userIds.has(device.owner.id)) {
+          userIds.add(device.owner.id);
+          uniqueUsers.push({
+            id: device.owner.id,
+            name: device.owner.name,
+            email: device.owner.email,
+            role: 'user', // Default, would come from API in real scenario
+            createdAt: new Date().toISOString().split('T')[0],
+            devices: devicesResponse.devices.filter(d => d.owner?.id === device.owner.id).length
           });
         }
-        
-        // Extract unique users from devices
-        const uniqueUsers = [];
-        const userIds = new Set();
-        
-        devicesResponse.devices.forEach(device => {
-          if (device.owner && !userIds.has(device.owner.id)) {
-            userIds.add(device.owner.id);
-            uniqueUsers.push({
-              id: device.owner.id,
-              name: device.owner.name,
-              email: device.owner.email,
-              createdAt: new Date().toISOString().split('T')[0],
-              devices: devicesResponse.devices.filter(d => d.owner?.id === device.owner.id).length
-            });
-          }
-        });
-        
-        setRecentUsers(uniqueUsers);
-      } catch (error) {
-        console.error("Error fetching admin data:", error);
-        setError("Failed to load admin data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      });
+      
+      setRecentUsers(uniqueUsers);
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+      setError("Failed to load admin data. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
+
+  // Delete handlers
+  const handleDeleteUser = (user) => {
+    setSelectedItem(user);
+    setDeleteType("user");
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteDevice = (device) => {
+    setSelectedItem(device);
+    setDeleteType("device");
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      if (deleteType === "user") {
+        await adminService.deleteUser(selectedItem.id);
+        setRecentUsers(recentUsers.filter(user => user.id !== selectedItem.id));
+      } else if (deleteType === "device") {
+        // Assuming we have a deleteDevice method in adminService
+        // await adminService.deleteDevice(selectedItem.deviceId);
+        alert("Device deletion not implemented yet");
+        setRecentDevices(recentDevices.filter(device => device.id !== selectedItem.id));
+      }
+      
+      setShowDeleteModal(false);
+      setSelectedItem(null);
+      setDeleteType("");
+      
+      // Refresh data to update stats
+      await fetchData();
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      alert("Error deleting item: " + error.message);
+    }
+  };
+
+  // Edit handlers
+  const handleEditUser = (user) => {
+    setSelectedItem(user);
+    setEditType("user");
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      role: user.role || "user",
+      status: "active"
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditDevice = (device) => {
+    setSelectedItem(device);
+    setEditType("device");
+    setEditForm({
+      name: device.name,
+      email: "",
+      role: "user",
+      status: device.status
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      if (editType === "user") {
+        await adminService.updateUserRole(selectedItem.id, editForm.role);
+        // Update local state
+        setRecentUsers(recentUsers.map(user => 
+          user.id === selectedItem.id 
+            ? { ...user, role: editForm.role }
+            : user
+        ));
+      } else if (editType === "device") {
+        // Device edit functionality would go here
+        alert("Device editing not fully implemented yet");
+      }
+      
+      setShowEditModal(false);
+      setSelectedItem(null);
+      setEditType("");
+      
+      // Refresh data
+      await fetchData();
+    } catch (error) {
+      console.error("Error updating item:", error);
+      alert("Error updating item: " + error.message);
+    }
+  };
 
   return (
     <div className={`pt-20 ${darkMode ? "bg-gray-900" : "bg-gray-50"} min-h-screen`}>
@@ -162,7 +265,7 @@ const AdminDashboard = () => {
                     <tr>
                       <th className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} uppercase tracking-wider`}>Name</th>
                       <th className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} uppercase tracking-wider`}>Email</th>
-                      <th className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} uppercase tracking-wider`}>Joined</th>
+                      <th className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} uppercase tracking-wider`}>Role</th>
                       <th className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} uppercase tracking-wider`}>Devices</th>
                       <th className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} uppercase tracking-wider`}>Actions</th>
                     </tr>
@@ -178,14 +281,30 @@ const AdminDashboard = () => {
                             {user.email}
                           </td>
                           <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-                            {user.createdAt}
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              user.role === "admin" 
+                                ? "bg-purple-100 text-purple-800" 
+                                : "bg-green-100 text-green-800"
+                            }`}>
+                              {user.role}
+                            </span>
                           </td>
                           <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                             {user.devices}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
-                            <button className="text-red-600 hover:text-red-800">Delete</button>
+                            <button 
+                              onClick={() => handleEditUser(user)}
+                              className="text-blue-600 hover:text-blue-800 mr-3"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteUser(user)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              Delete
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -247,8 +366,18 @@ const AdminDashboard = () => {
                             {device.lastActive ? new Date(device.lastActive).toLocaleString() : "Never"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
-                            <button className="text-red-600 hover:text-red-800">Delete</button>
+                            <button 
+                              onClick={() => handleEditDevice(device)}
+                              className="text-blue-600 hover:text-blue-800 mr-3"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteDevice(device)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              Delete
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -264,6 +393,114 @@ const AdminDashboard = () => {
               </div>
             </div>
           </>
+        )}
+
+        {/* Delete Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3 text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </div>
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
+                  Delete {deleteType}
+                </h3>
+                <div className="mt-2 px-7 py-3">
+                  <p className="text-sm text-gray-500">
+                    Are you sure you want to delete {deleteType === "user" ? selectedItem?.name : selectedItem?.name}? 
+                    This action cannot be undone.
+                  </p>
+                </div>
+                <div className="items-center px-4 py-3">
+                  <button
+                    onClick={confirmDelete}
+                    className="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setSelectedItem(null);
+                      setDeleteType("");
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {showEditModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 text-center">
+                  Edit {editType}
+                </h3>
+                <div className="mt-4">
+                  {editType === "user" && (
+                    <div className="mb-4">
+                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                        Role
+                      </label>
+                      <select
+                        value={editForm.role}
+                        onChange={(e) => setEditForm({...editForm, role: e.target.value})}
+                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                      >
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  )}
+                  
+                  {editType === "device" && (
+                    <div className="mb-4">
+                      <label className="block text-gray-700 text-sm font-bold mb-2">
+                        Status
+                      </label>
+                      <select
+                        value={editForm.status}
+                        onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                      >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="maintenance">Maintenance</option>
+                      </select>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-center">
+                    <button
+                      onClick={handleEditSubmit}
+                      className="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setSelectedItem(null);
+                        setEditType("");
+                      }}
+                      className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

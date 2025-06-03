@@ -117,6 +117,41 @@ const getAllUsers = async (req, res) => {
 };
 
 /**
+ * Get all devices (admin only)
+ * @route GET /api/admin/devices
+ * @access Admin
+ */
+const getAllDevices = async (req, res) => {
+  try {
+    // Find all devices with user information
+    const devices = await Device.find().populate('userId', 'name email');
+    
+    // Return the devices
+    res.json({
+      count: devices.length,
+      devices: devices.map(device => ({
+        id: device._id,
+        deviceId: device.deviceId,
+        name: device.name,
+        numberOfScales: device.numberOfScales,
+        owner: device.userId ? {
+          id: device.userId._id,
+          name: device.userId.name,
+          email: device.userId.email
+        } : null,
+        createdAt: device.createdAt,
+        lastActive: device.lastActive,
+        status: device.status,
+        location: device.location
+      }))
+    });
+  } catch (error) {
+    console.error('Get all devices error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
  * Update user role (admin only)
  * @route PUT /api/admin/users/:id/role
  * @access Admin
@@ -213,9 +248,9 @@ const getSystemActivity = async (req, res) => {
     recentDevices.forEach(device => {
       activity.push({
         type: 'device_registered',
-        message: `Device "${device.name}" registered by ${device.userId.name}`,
+        message: `Device "${device.name}" registered by ${device.userId ? device.userId.name : 'Unknown'}`,
         timestamp: device.createdAt,
-        user: device.userId.name,
+        user: device.userId ? device.userId.name : 'Unknown',
         details: {
           deviceId: device.deviceId,
           deviceName: device.name
@@ -251,6 +286,7 @@ const getSystemActivity = async (req, res) => {
 module.exports = {
   getAdminStats,
   getAllUsers,
+  getAllDevices,
   updateUserRole,
   deleteUser,
   getSystemActivity

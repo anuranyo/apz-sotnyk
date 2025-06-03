@@ -22,19 +22,13 @@ const adminService = {
     }
   },
 
-  // Get all devices (admin only) - ИСПРАВЛЕНО: используем /admin/devices
+  // Get all devices (admin only)
   getAllDevices: async () => {
     try {
       const response = await apiClient.get('/admin/devices');
       return response.data;
     } catch (error) {
-      // Fallback: если новый роут не работает, попробовать старый
-      try {
-        const fallbackResponse = await apiClient.get('/devices/admin/all');
-        return fallbackResponse.data;
-      } catch (fallbackError) {
-        throw error.response?.data || error.message;
-      }
+      throw error.response?.data || error.message;
     }
   },
 

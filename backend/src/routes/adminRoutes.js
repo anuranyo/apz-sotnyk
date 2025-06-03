@@ -2,11 +2,11 @@ const express = require('express');
 const {
   getAdminStats,
   getAllUsers,
+  getAllDevices, // Импорт из adminController, а не deviceController
   updateUserRole,
   deleteUser,
   getSystemActivity
 } = require('../controllers/adminController');
-const { getAllDevices } = require('../controllers/deviceController'); // Добавить импорт
 const { adminAuth } = require('../middleware/auth');
 const { check } = require('express-validator');
 

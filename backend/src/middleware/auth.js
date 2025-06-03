@@ -28,10 +28,6 @@ const auth = async (req, res, next) => {
     req.user = user;
     req.userId = user._id;
     
-    // Update last login timestamp
-    user.lastLogin = Date.now();
-    await user.save();
-    
     next();
   } catch (error) {
     console.error('Authentication error:', error.message);
@@ -41,34 +37,22 @@ const auth = async (req, res, next) => {
 
 /**
  * Middleware to check if user is admin
+ * ИСПРАВЛЕНО: используем auth middleware + проверка роли
  */
 const adminAuth = async (req, res, next) => {
   try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Сначала проверяем аутентификацию
+    await new Promise((resolve, reject) => {
+      auth(req, res, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
     
-    if (!token) {
-      return res.status(401).json({ message: 'No authentication token, access denied' });
-    }
-    
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Find user with the id from token
-    const user = await User.findById(decoded.userId);
-    
-    if (!user) {
-      return res.status(401).json({ message: 'User not found, authorization denied' });
-    }
-    
-    // Check if user is admin
-    if (user.role !== 'admin') {
+    // Проверяем роль админа
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
-    
-    // Add user to request object
-    req.user = user;
-    req.userId = user._id;
     
     next();
   } catch (error) {

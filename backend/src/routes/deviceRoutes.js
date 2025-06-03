@@ -94,6 +94,6 @@ router.delete('/:id', auth, deleteDevice);
  * @desc    Get all devices (admin only)
  * @access  Admin
  */
-router.get('/admin/all', adminAuth, getAllDevices);
+router.get('/admin/devices', adminAuth, getAllDevices);
 
 module.exports = router;

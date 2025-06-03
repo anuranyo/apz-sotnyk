@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const deviceRoutes = require('./routes/deviceRoutes');
 const readingRoutes = require('./routes/readingRoutes');
+const adminRoutes = require('./routes/adminRoutes'); // Новая строка
 
 // Create Express app
 const app = express();
@@ -14,16 +15,15 @@ const app = express();
 app.use(cors({
   origin: function(origin, callback) {
     const allowedOrigins = [
-      'https://apz-sotnyk.vercel.app',  // correct frontend domain with https
-      'http://apz-sotnyk.vercel.app',   // Also allow http version just in case
+      'https://apz-sotnyk.vercel.app',
+      'http://apz-sotnyk.vercel.app',
       'https://apz-sotnyk-serv.vercel.app',
       'http://apz-sotnyk-serv.vercel.app',
       'http://localhost:5000',
       'http://localhost:5174',
-      'http://localhost:3000'  // Add your vite dev server port
+      'http://localhost:3000'
     ];
     
-    // Log all requests for debugging
     console.log('Request origin:', origin);
     
     if (!origin || allowedOrigins.includes(origin)) {
@@ -43,6 +43,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/readings', readingRoutes);
+app.use('/api/admin', adminRoutes); // Новая строка
 
 // Root route
 app.get('/', (req, res) => {
@@ -61,7 +62,10 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Server error', error: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred' });
+  res.status(500).json({ 
+    message: 'Server error', 
+    error: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred' 
+  });
 });
 
 module.exports = app;

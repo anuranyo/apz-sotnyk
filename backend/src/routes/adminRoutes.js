@@ -6,6 +6,7 @@ const {
   deleteUser,
   getSystemActivity
 } = require('../controllers/adminController');
+const { getAllDevices } = require('../controllers/deviceController'); // Добавить импорт
 const { adminAuth } = require('../middleware/auth');
 const { check } = require('express-validator');
 
@@ -24,6 +25,13 @@ router.get('/stats', adminAuth, getAdminStats);
  * @access  Admin
  */
 router.get('/users', adminAuth, getAllUsers);
+
+/**
+ * @route   GET /api/admin/devices
+ * @desc    Get all devices (admin only)
+ * @access  Admin
+ */
+router.get('/devices', adminAuth, getAllDevices);
 
 /**
  * @route   PUT /api/admin/users/:id/role

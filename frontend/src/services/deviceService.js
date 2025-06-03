@@ -60,17 +60,9 @@ const deviceService = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
-  },
-
-  // Get all devices (admin only)
-  getAllDevices: async () => {
-    try {
-      const response = await apiClient.get('/admin/devices');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
   }
+
+  // Убрали getAllDevices отсюда - он теперь в adminService
 };
 
 export default deviceService;

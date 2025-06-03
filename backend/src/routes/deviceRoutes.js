@@ -6,8 +6,8 @@ const {
   getDeviceById, 
   updateDevice, 
   connectToDevice, 
-  deleteDevice,
-  getAllDevices 
+  deleteDevice
+  // Убрали getAllDevices
 } = require('../controllers/deviceController');
 const { auth, adminAuth } = require('../middleware/auth');
 
@@ -38,6 +38,23 @@ router.post(
 router.get('/', auth, getUserDevices);
 
 /**
+ * @route   POST /api/devices/connect
+ * @desc    Connect to an existing device
+ * @access  Private
+ */
+router.post(
+  '/connect',
+  [
+    auth,
+    [
+      check('deviceId', 'Device ID is required').not().isEmpty(),
+      check('ownerPassword', 'Owner password is required').not().isEmpty()
+    ]
+  ],
+  connectToDevice
+);
+
+/**
  * @route   GET /api/devices/:id
  * @desc    Get a specific device by ID
  * @access  Private
@@ -66,34 +83,10 @@ router.put(
 );
 
 /**
- * @route   POST /api/devices/connect
- * @desc    Connect to an existing device
- * @access  Private
- */
-router.post(
-  '/connect',
-  [
-    auth,
-    [
-      check('deviceId', 'Device ID is required').not().isEmpty(),
-      check('ownerPassword', 'Owner password is required').not().isEmpty()
-    ]
-  ],
-  connectToDevice
-);
-
-/**
  * @route   DELETE /api/devices/:id
  * @desc    Delete a device
  * @access  Private
  */
 router.delete('/:id', auth, deleteDevice);
-
-/**
- * @route   GET /api/admin/devices
- * @desc    Get all devices (admin only)
- * @access  Admin
- */
-router.get('/admin/devices', adminAuth, getAllDevices);
 
 module.exports = router;

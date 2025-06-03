@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { ThemeContext } from "../context/ThemeContext";
-import { deviceService, authService } from "../services";
+import { adminService } from "../services"; // Изменено!
 
 const AdminDashboard = () => {
   const { darkMode } = useContext(ThemeContext);
@@ -20,25 +20,29 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Get all devices (admin only)
-        const devicesResponse = await deviceService.getAllDevices();
+        // Get all devices (admin only) - используем adminService
+        const devicesResponse = await adminService.getAllDevices();
         setRecentDevices(devicesResponse.devices);
         
-        // Calculate stats
-        const activeDevices = devicesResponse.devices.filter(device => device.status === 'active').length;
-        
-        // In a real app, you would have endpoints for these stats
-        // For now, we'll just use the devices data
-        setStats({
-          totalUsers: devicesResponse.devices.length > 0 ? 
-            [...new Set(devicesResponse.devices.map(d => d.owner?.id))].length : 0,
-          totalDevices: devicesResponse.devices.length,
-          activeDevices: activeDevices,
-          totalReadings: 0 // This would come from a separate API call in a real app
-        });
+        // Get admin stats
+        try {
+          const statsResponse = await adminService.getAdminStats();
+          setStats(statsResponse);
+        } catch (statsError) {
+          console.warn('Stats endpoint not available, calculating from devices data');
+          // Fallback: calculate stats from devices data
+          const activeDevices = devicesResponse.devices.filter(device => device.status === 'active').length;
+          
+          setStats({
+            totalUsers: devicesResponse.devices.length > 0 ? 
+              [...new Set(devicesResponse.devices.map(d => d.owner?.id))].length : 0,
+            totalDevices: devicesResponse.devices.length,
+            activeDevices: activeDevices,
+            totalReadings: 0
+          });
+        }
         
         // Extract unique users from devices
-        // In a real app, you would have a separate users API endpoint
         const uniqueUsers = [];
         const userIds = new Set();
         
@@ -49,7 +53,7 @@ const AdminDashboard = () => {
               id: device.owner.id,
               name: device.owner.name,
               email: device.owner.email,
-              createdAt: new Date().toISOString().split('T')[0], // Placeholder, would come from user API
+              createdAt: new Date().toISOString().split('T')[0],
               devices: devicesResponse.devices.filter(d => d.owner?.id === device.owner.id).length
             });
           }

@@ -12,27 +12,34 @@ const adminRoutes = require('./routes/adminRoutes'); // Новая строка
 const app = express();
 
 // Middleware
+// app.use(cors({
+//   origin: function(origin, callback) {
+//     const allowedOrigins = [
+//       'https://apz-sotnyk.vercel.app',
+//       'http://apz-sotnyk.vercel.app',
+//       'https://apz-sotnyk-serv.vercel.app',
+//       'http://apz-sotnyk-serv.vercel.app',
+//       'http://localhost:5000',
+//       'http://localhost:5173',
+//       'http://localhost:3000'
+//     ];
+    
+//     console.log('Request origin:', origin);
+    
+//     if (!origin || allowedOrigins.includes(origin)) {
+//       callback(null, true);
+//     } else {
+//       console.log('Blocked by CORS:', origin);
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
+
 app.use(cors({
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-      'https://apz-sotnyk.vercel.app',
-      'http://apz-sotnyk.vercel.app',
-      'https://apz-sotnyk-serv.vercel.app',
-      'http://apz-sotnyk-serv.vercel.app',
-      'http://localhost:5000',
-      'http://localhost:5174',
-      'http://localhost:3000'
-    ];
-    
-    console.log('Request origin:', origin);
-    
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('Blocked by CORS:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // Разрешить все origins для тестирования
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

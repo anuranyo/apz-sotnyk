@@ -117,6 +117,32 @@ const login = async (req, res) => {
 };
 
 /**
+ * Logout user
+ * @route POST /api/auth/logout
+ * @access Private
+ */
+const logout = async (req, res) => {
+  try {
+    // В случае простой JWT реализации, логика logout происходит на клиенте
+    // Здесь мы можем записать информацию о logout или очистить какие-то данные
+    
+    // Обновляем последнюю активность пользователя
+    const user = await User.findById(req.userId);
+    if (user) {
+      user.lastLogin = Date.now();
+      await user.save();
+    }
+    
+    res.json({
+      message: 'Logout successful'
+    });
+  } catch (error) {
+    console.error('Logout error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+/**
  * Get current user profile
  * @route GET /api/auth/profile
  * @access Private
@@ -186,6 +212,7 @@ const updateProfile = async (req, res) => {
 module.exports = {
   register,
   login,
+  logout,
   getProfile,
   updateProfile
 };

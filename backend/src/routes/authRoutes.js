@@ -1,6 +1,6 @@
 const express = require('express');
 const { check } = require('express-validator');
-const { register, login, getProfile, updateProfile } = require('../controllers/authController');
+const { register, login, logout, getProfile, updateProfile } = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -33,6 +33,13 @@ router.post(
   ],
   login
 );
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Logout user
+ * @access  Private
+ */
+router.post('/logout', auth, logout);
 
 /**
  * @route   GET /api/auth/profile
